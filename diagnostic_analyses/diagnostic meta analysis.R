@@ -124,7 +124,7 @@ sputum <- sputum[-2,]
 
 ### get rid of bedell, feasey, lawn, munseri, no cxrs
 
-CXR <- CXR[-c(1,3,4,5),]
+CXR <- CXR[-c(1,3,5,6),]
 
 
 s <- sputum[c(2,3,4,5)]
