@@ -56,6 +56,7 @@ summary(me3)
 
 anova(me2,me3)
 
+
 ## nope so final model has fixed effect BCresult, age, CD4, random effect primary study
 
 summary(me3)
