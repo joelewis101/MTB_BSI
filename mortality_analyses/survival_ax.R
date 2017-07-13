@@ -7,101 +7,7 @@ library(survival)
 library(coxme)
 library(survminer)
 
-wdpath = "/Users/joelewis/Documents/Projects/MTB_BSI/data/standardised"
-
-crump <- read.csv(paste0(wdpath , "/s_crump.csv"), header=TRUE, stringsAsFactors = FALSE)
-munseri <- read.csv(paste0(wdpath , "/s_munseri.csv"), header=TRUE, stringsAsFactors = FALSE)
-feasey <- read.csv(paste0(wdpath , "/s_feasey.csv"), header=TRUE, stringsAsFactors = FALSE)
-bedell <- read.csv(paste0(wdpath , "/s_bedell.csv"), header=TRUE, stringsAsFactors = FALSE)
-
-
-lawn <- read.csv(paste0(wdpath , "/s_lawn.csv"), header=TRUE, stringsAsFactors = FALSE)
-schutz <- read.csv(paste0(wdpath , "/s_schutz.csv"), header=TRUE, stringsAsFactors = FALSE)
-varma <- read.csv(paste0(wdpath , "/s_varma.csv"), header=TRUE, stringsAsFactors = FALSE)
-vonG <- read.csv(paste0(wdpath , "/s_vonG.csv"), header=TRUE, stringsAsFactors = FALSE)
-
-lawn$admissionDate <- NA
-schutz$admissionDate <- NA
-varma$admissionDate <- NA
-vonG$admissionDate <- NA
-crump$admissionDate <- NA
-schutz$positive.cultureDate <- NA
-varma$sex <- as.character(varma$sex)
-varma$sex[varma$sex == 1] <- "female"
-varma$sex[varma$sex == 2] <- "male"
-schutz$ulamAvailable <- 0
-schutz$ulamResult <- NA
-
-## schutz has no mortality data
-### nor does varma
-
-
-### exclude these 
-
-
-## crump has no TB diagnoses except BC - include for now
-## munseri has a lot of missing
-### so does vonG
-
-## bedell we have made assumptions
-
-
-### lets do bedell feasey law munseri von g cox PH
-
-
-
-#df <- rbind(crump,munseri)
-df <- rbind(bedell,feasey)
-#df <- rbind(df, bedell)
-df <- rbind(df,munseri )
-
-
-
-df <- bind_rows(df, lawn)
-
-#df <- bind_rows(df,schutz)
-#df <- bind_rows(df, varma)
-df <- bind_rows(df, vonG)
-df <- bind_rows(df, crump)
-
-df$admissionDate <- as.Date(df$admissionDate)
-df$recruitmentDate  <- as.Date(df$recruitmentDate)
-df$venepunctureDate <- as.Date(df$venepunctureDate)
-df$incubationDate <- as.Date(df$incubationDate)
-df$positive.cultureDate <- as.Date(df$positive.cultureDate)
-df$censorDate <- as.Date(df$censorDate)
-df$dateDeath <- as.Date(df$dateDeath)
-
-df$fu_time <- as.numeric(df$censorDate - df$recruitmentDate)
-df$died <- as.numeric(0)
-
-df$died[!is.na(df$censorDate)] <- 0
-df$died[!is.na(df$dateDeath)] <- 1
-df$died[is.na(df$censorDate)] <- NA
-
-df$cohort.type <- ""
-df$cohort.type[df$primary.study == "Bedell2012" | df$primary.study == "Munseri2011" | df$primary.study == "Feasey2013" | df$primary.study == "vonGottberg2001"] <- "TBsuspect"
-df$cohort.type[df$primary.study == "Lawn2015"] <- "HIV"
-df$cohort.type[df$primary.study == "Crump2012"] <- "fever"
-
-
-nrow(df)
-### we have 1714 patients
-table(df$BCresult)
-#### 129 MTB BSI
-table(df$died)
-### 264 deaths
-table(df$TBdiagnosis)
-### 335 MTB diagnoses
-
-TB <- subset(df, TBdiagnosis ==1 )
-nrow(TB)
-
-### we have 272 with outcome data
-TBoc <- subset(TB, !is.na(TB$died))
-nrow(TBoc)
-table(TBoc$BCresult)
-### in this there are 94 MTB BSI 
+source("/Users/joelewis/Documents/Projects/MTB_BSI/R2/mortality_analyses/load_recode_for_survival_analysis.R")
 
 ### make surv object
 
@@ -127,7 +33,8 @@ summary(m)
 #### let's take this sheet to another mixed effects level bru
 
 ### simply - study and setting and cohort type as mixed effect
-me2 <- coxme(s ~ BCresult + CD4 + age + sex + (1 | primary.study) + (1 | setting1) + (1 | cohort.type), data - TBoc)
+
+me2 <- coxme(s ~ BCresult + CD4 + age + sex + (1 | primary.study) + (1 | setting1) + (1 | cohort.type), data = TBoc)
 summary(me2)
 ### primary study accounts for fair but of variance but setting (ip/op) and cohort type not so much
 ### on testing (chi sq) of nested models none of this stuff adds anything so stick with just primary study as
@@ -146,6 +53,7 @@ summary(me2)
 
 me3 <- coxme(s ~ BCresult + CD4 + age + (1 | primary.study) , data = TBoc)
 summary(me3)
+
 anova(me2,me3)
 
 ## nope so final model has fixed effect BCresult, age, CD4, random effect primary study
